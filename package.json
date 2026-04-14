@@ -1,11 +1,21 @@
 {
-  "name": "neighbor-note",
+  "name": "hello-neighbour",
   "version": "1.0.0",
-  "description": "Voice-based anonymous neighbor connection app for UW-Madison dorm students",
+  "private": true,
   "scripts": {
-    "start": "npx serve .",
-    "dev": "npx serve ."
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start"
   },
-  "keywords": ["uw-madison", "dorm", "voice", "social"],
-  "license": "MIT"
+  "dependencies": {
+    "next": "^14.2.0",
+    "react": "^18.3.0",
+    "react-dom": "^18.3.0",
+    "@anthropic-ai/sdk": "^0.39.0"
+  },
+  "devDependencies": {
+    "tailwindcss": "^3.4.0",
+    "postcss": "^8.4.0",
+    "autoprefixer": "^10.4.0"
+  }
 }
