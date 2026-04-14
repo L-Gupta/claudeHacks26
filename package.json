@@ -1,0 +1,11 @@
+{
+  "name": "neighbor-note",
+  "version": "1.0.0",
+  "description": "Voice-based anonymous neighbor connection app for UW-Madison dorm students",
+  "scripts": {
+    "start": "npx serve .",
+    "dev": "npx serve ."
+  },
+  "keywords": ["uw-madison", "dorm", "voice", "social"],
+  "license": "MIT"
+}
