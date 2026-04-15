@@ -1,6 +1,6 @@
 'use client';
 
-export default function MatchCard({ currentUser, matchedUser, suggestion, onClose }) {
+export default function MatchCard({ currentUser, matchedUser, suggestion, onClose, onStartChat }) {
   if (!matchedUser) return null;
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/70">
@@ -33,10 +33,19 @@ export default function MatchCard({ currentUser, matchedUser, suggestion, onClos
           <p className="text-gray-600 text-sm mt-2 leading-relaxed">{suggestion}</p>
         </div>
 
-        <button onClick={onClose}
-          className="w-full py-3 rounded-xl font-bold text-white bg-uwred hover:brightness-110 transition-all">
-          Nice! Close
-        </button>
+        <div className="flex gap-2">
+          <button onClick={onClose}
+            className="flex-1 py-3 rounded-xl font-bold text-uwred bg-uwred/10 hover:bg-uwred/20 transition-all">
+            Close
+          </button>
+          <button onClick={() => onStartChat?.(matchedUser)}
+            className="flex-1 py-3 rounded-xl font-bold text-white bg-uwred hover:brightness-110 transition-all flex items-center justify-center gap-2">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            Chat
+          </button>
+        </div>
       </div>
     </div>
   );

@@ -1,4 +1,5 @@
 import './globals.css';
+import { ToastProvider } from '@/components/Toast';
 
 export const metadata = {
   title: 'HelloNeighbour — UW-Madison',
@@ -14,7 +15,7 @@ export default function RootLayout({ children }) {
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
       </head>
       <body className="bg-cream text-uwdark min-h-screen">
-        {children}
+        <ToastProvider>{children}</ToastProvider>
       </body>
     </html>
   );
