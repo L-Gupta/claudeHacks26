@@ -1,20 +1,16 @@
 'use client';
-import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Header from '@/components/Header';
 import SignupForm from '@/components/SignupForm';
-import FloorMap from '@/components/FloorMap';
-import RecordButton from '@/components/RecordButton';
-import WaveformCanvas from '@/components/WaveformCanvas';
+import DormExplorer from '@/components/DormExplorer';
 import VoiceModal from '@/components/VoiceModal';
 import MatchCard from '@/components/MatchCard';
 import ConfettiOverlay from '@/components/ConfettiOverlay';
-import SuggestionsPanel from '@/components/SuggestionsPanel';
 import ChatPanel from '@/components/ChatPanel';
 import MatchesDrawer from '@/components/MatchesDrawer';
 import ProfileStats from '@/components/ProfileStats';
 import FloorStats from '@/components/FloorStats';
 import { useToast } from '@/components/Toast';
-import { knnRank } from '@/lib/knn';
 
 const SESSION_KEY = 'helloNeighbour_session';
 
@@ -52,8 +48,6 @@ function createMockAudioBuffer(ctx, seed) {
 
 export default function Home() {
   const [user, setUser] = useState(null);
-  const [floorUsers, setFloorUsers] = useState([]);
-  const [aiSuggestions, setAiSuggestions] = useState([]);
   const [selectedPin, setSelectedPin] = useState(null);
   const [resonatedPins, setResonatedPins] = useState(new Set());
   const [matchedUser, setMatchedUser] = useState(null);
@@ -61,9 +55,6 @@ export default function Home() {
   const [showMatchCard, setShowMatchCard] = useState(false);
   const [meetupSuggestion, setMeetupSuggestion] = useState('');
   const [playingPinId, setPlayingPinId] = useState(null);
-  const [isRecording, setIsRecording] = useState(false);
-  const [recordTime, setRecordTime] = useState(0);
-  const [hasRecorded, setHasRecorded] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [chatPartner, setChatPartner] = useState(null);
   const [showMatchesDrawer, setShowMatchesDrawer] = useState(false);
@@ -72,23 +63,14 @@ export default function Home() {
 
   const audioCtxRef = useRef(null);
   const analyserRef = useRef(null);
-  const mediaRecRef = useRef(null);
-  const streamRef = useRef(null);
-  const chunksRef = useRef([]);
-  const timerRef = useRef(null);
-  const sourceRef = useRef(null);
   const playbackRef = useRef(null);
-  const blobUrlRef = useRef(null);
 
   const toast = useToast();
 
   // Restore session from localStorage
   useEffect(() => {
     const saved = loadSession();
-    if (saved) {
-      setUser(saved);
-      setHasRecorded(!!saved.blobUrl || !!saved.features);
-    }
+    if (saved) setUser(saved);
     setTimeout(() => setLoaded(true), 50);
   }, []);
 
@@ -116,112 +98,13 @@ export default function Home() {
     return () => window.removeEventListener('keydown', onKey);
   }, [chatPartner, showMatchesDrawer, showMatchCard, showProfile, selectedPin]);
 
-  useEffect(() => {
-    if (!user) return;
-    fetchFloorData();
-  }, [user]);
-
-  async function fetchFloorData() {
-    try {
-      const res = await fetch(`/api/users?dorm=${encodeURIComponent(user.dorm)}&userId=${user.id}`);
-      const data = await res.json();
-      setFloorUsers(data.users || []);
-      setAiSuggestions(data.suggestions || []);
-    } catch (err) {
-      console.error('Fetch floor error:', err);
-    }
-  }
-
   function getAudioCtx() {
     if (!audioCtxRef.current) audioCtxRef.current = new (window.AudioContext || window.webkitAudioContext)();
     if (audioCtxRef.current.state === 'suspended') audioCtxRef.current.resume();
     return audioCtxRef.current;
   }
 
-  const sortedRooms = useMemo(() => {
-    if (!user?.features) return floorUsers.map(u => u.room);
-    const others = floorUsers.filter(u => u.id !== user.id);
-    return knnRank(user.features, others).map(u => u.room);
-  }, [user, floorUsers]);
-
-  async function startRec() {
-    if (hasRecorded) return;
-    try {
-      const ctx = getAudioCtx();
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      streamRef.current = stream;
-      const src = ctx.createMediaStreamSource(stream);
-      const an = ctx.createAnalyser();
-      an.fftSize = 256;
-      src.connect(an);
-      analyserRef.current = an;
-      sourceRef.current = src;
-
-      const mr = new MediaRecorder(stream);
-      chunksRef.current = [];
-      mr.ondataavailable = e => { if (e.data.size > 0) chunksRef.current.push(e.data); };
-      mr.start();
-      mediaRecRef.current = mr;
-      setIsRecording(true);
-      setRecordTime(0);
-      toast?.('Recording started — speak into your mic', 'info');
-
-      timerRef.current = setInterval(() => {
-        setRecordTime(prev => {
-          if (prev >= 14) { stopRec(); return 15; }
-          return prev + 1;
-        });
-      }, 1000);
-    } catch {
-      toast?.('Microphone access is required to record', 'error');
-    }
-  }
-
-  function stopRec() {
-    setIsRecording(false);
-    clearInterval(timerRef.current);
-    const mr = mediaRecRef.current;
-    if (mr && mr.state !== 'inactive') {
-      mr.onstop = async () => {
-        const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
-        blobUrlRef.current = URL.createObjectURL(blob);
-        setHasRecorded(true);
-        toast?.('Voice note captured! Analyzing...', 'success');
-
-        const transcript = "Hey, I'm looking for cool people on my floor. I love " +
-          (user.hobbies || []).join(' and ') + ". " + user.major + " major here!";
-
-        try {
-          const res = await fetch('/api/analyze', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ transcript, major: user.major, year: user.year, hobbies: user.hobbies }),
-          });
-          const analysis = await res.json();
-
-          const updated = { ...user, summary: analysis.summary, features: analysis, blobUrl: blobUrlRef.current, isNew: true };
-          setUser(updated);
-
-          await fetch('/api/users', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(updated),
-          });
-
-          fetchFloorData();
-          toast?.('Your note is live on the map!', 'success');
-        } catch (err) {
-          console.error('Re-analyze error:', err);
-          toast?.('Analysis failed — try again', 'error');
-        }
-      };
-      mr.stop();
-    }
-    if (streamRef.current) { streamRef.current.getTracks().forEach(t => t.stop()); streamRef.current = null; }
-    if (sourceRef.current) { sourceRef.current.disconnect(); sourceRef.current = null; }
-    analyserRef.current = null;
-  }
-
+  /* ── Audio Playback ── */
   function playPin(pin) {
     setSelectedPin(pin);
     const ctx = getAudioCtx();
@@ -236,8 +119,8 @@ export default function Home() {
       audio.play();
       audio.onended = () => setPlayingPinId(null);
       playbackRef.current = { audio };
-    } else {
-      const buf = createMockAudioBuffer(ctx, pin.audioSeed || 1);
+    } else if (pin.audioSeed) {
+      const buf = createMockAudioBuffer(ctx, pin.audioSeed);
       const src = ctx.createBufferSource();
       src.buffer = buf;
       src.connect(an); an.connect(ctx.destination);
@@ -258,9 +141,9 @@ export default function Home() {
     analyserRef.current = null;
   }
 
-  function handlePinClick(pin) {
+  function handleRoomClick(occupant) {
     stopPlayback();
-    playPin(pin);
+    playPin(occupant);
   }
 
   function handleCloseModal() {
@@ -268,6 +151,7 @@ export default function Home() {
     setSelectedPin(null);
   }
 
+  /* ── Resonate & Match ── */
   async function handleResonate(pinId) {
     setResonatedPins(prev => new Set([...prev, pinId]));
     toast?.('Resonating... waiting for mutual match', 'info');
@@ -303,8 +187,7 @@ export default function Home() {
       try {
         const res = await fetch(`/api/chat?userId=${user.id}`);
         const data = await res.json();
-        const matches = data.matches || [];
-        setMatchCount(matches.length);
+        setMatchCount((data.matches || []).length);
       } catch {}
     }
     fetchMatchCount();
@@ -324,11 +207,6 @@ export default function Home() {
     setChatPartner(partner);
   }
 
-  function handleViewRoom(room) {
-    const pin = floorUsers.find(u => u.room === room);
-    if (pin) handlePinClick(pin);
-  }
-
   function handleSignupComplete(newUser) {
     setUser(newUser);
     toast?.(`Welcome, ${newUser.name}! You're on the map.`, 'success');
@@ -337,9 +215,6 @@ export default function Home() {
   function handleLogout() {
     saveSession(null);
     setUser(null);
-    setFloorUsers([]);
-    setAiSuggestions([]);
-    setHasRecorded(false);
     setMatchCount(0);
     toast?.('Logged out successfully', 'info');
   }
@@ -354,91 +229,39 @@ export default function Home() {
         <SignupForm onComplete={handleSignupComplete} />
       ) : (
         <>
-          {/* Floor Map */}
-          <div className="fade-in-d2 flex-1 px-3 pt-4 pb-2">
-            <div className="max-w-2xl mx-auto">
-              <div className="flex items-center justify-between mb-2 px-1">
-                <h2 className="text-xs font-bold tracking-widest uppercase text-uwred/70">
-                  {user.dorm} — Floor {user.floor}
-                </h2>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-gray-400">Room {user.room}</span>
-                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-green-100 text-green-600 font-semibold">Live</span>
-                </div>
-              </div>
-
-              <FloorMap
-                users={floorUsers}
-                currentUser={user}
-                onPinClick={handlePinClick}
-                sortedRooms={sortedRooms}
-                resonatedPins={resonatedPins}
-                dorm={user.dorm}
-              />
-
-              {user.features && (
-                <div className="fade-in mt-2 px-1 flex items-center justify-between">
-                  <p className="text-xs text-gray-400">
-                    Compatibility via KNN (k=3, 14-dim, Euclidean + Cosine blend)
-                  </p>
-                  <span className="text-[10px] text-gray-300">{floorUsers.length} on map</span>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* AI Suggestions */}
-          <div className="fade-in-d3 px-3 pb-3">
-            <div className="max-w-2xl mx-auto">
-              <SuggestionsPanel suggestions={aiSuggestions} onViewRoom={handleViewRoom}
-                floorUsers={floorUsers} currentUser={user} />
-            </div>
-          </div>
+          <DormExplorer currentUser={user} onRoomClick={handleRoomClick} />
 
           {/* Floor Stats */}
-          <div className="fade-in-d3 px-3 pb-3">
-            <div className="max-w-2xl mx-auto">
+          <div className="fade-in-d3 px-4 pb-3">
+            <div className="max-w-lg mx-auto">
               <FloorStats dorm={user.dorm} />
             </div>
-          </div>
-
-          {/* Record Section */}
-          <div className="fade-in-d4 pb-6 pt-2">
-            {!hasRecorded ? (
-              <div className="flex flex-col items-center">
-                <p className="text-xs text-gray-400 mb-3">Drop a voice note on the map</p>
-                <RecordButton
-                  isRecording={isRecording} time={recordTime}
-                  onDown={startRec} onUp={() => { if (isRecording) stopRec(); }}
-                  recorded={hasRecorded}
-                />
-                {isRecording && (
-                  <div className="mt-3 rounded-xl overflow-hidden" style={{ width: 240, height: 48, background: '#f0f0ee' }}>
-                    <WaveformCanvas analyser={analyserRef.current} playing={isRecording} bg="#f0f0ee" />
-                  </div>
-                )}
-              </div>
-            ) : (
-              <p className="text-center text-sm text-gray-400 font-medium">
-                Your note is live — tap a pin to listen & resonate
-              </p>
-            )}
           </div>
         </>
       )}
 
-      {/* Overlays */}
+      {/* ── Overlays ── */}
       <VoiceModal
-        pin={selectedPin} onClose={handleCloseModal}
+        pin={selectedPin}
+        onClose={handleCloseModal}
         onResonate={handleResonate}
         resonated={selectedPin ? resonatedPins.has(selectedPin.id) : false}
-        analyser={analyserRef.current} playing={!!playingPinId}
+        analyser={analyserRef.current}
+        playing={!!playingPinId}
         isCurrentUser={selectedPin?.id === user?.id}
         currentUser={user}
       />
+
       <ConfettiOverlay active={showConfetti} />
+
       {showMatchCard && matchedUser && (
-        <MatchCard currentUser={user} matchedUser={matchedUser} suggestion={meetupSuggestion} onClose={closeMatch} onStartChat={handleStartChat} />
+        <MatchCard
+          currentUser={user}
+          matchedUser={matchedUser}
+          suggestion={meetupSuggestion}
+          onClose={closeMatch}
+          onStartChat={handleStartChat}
+        />
       )}
 
       {/* Profile stats modal */}
@@ -479,7 +302,7 @@ export default function Home() {
         />
       )}
 
-      <footer className="text-center py-3 text-xs text-gray-400 border-t border-gray-100">
+      <footer className="text-center py-3 text-xs text-gray-400 border-t border-gray-100 mt-auto">
         HelloNeighbour &middot; UW-Madison &middot; Notes expire in 48h &middot; Press <kbd className="px-1 py-0.5 rounded bg-gray-100 text-gray-500 text-[10px] font-mono">Esc</kbd> to close
       </footer>
     </div>
