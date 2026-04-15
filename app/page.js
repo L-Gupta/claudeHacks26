@@ -222,7 +222,7 @@ export default function Home() {
   if (!loaded) return null;
 
   return (
-    <div className="min-h-screen flex flex-col bg-cream">
+    <div className="min-h-screen flex flex-col">
       <Header user={user} onProfileClick={() => setShowProfile(true)} onLogout={handleLogout} />
 
       {!user ? (
@@ -273,12 +273,12 @@ export default function Home() {
       {user && matchCount > 0 && !chatPartner && (
         <button
           onClick={() => setShowMatchesDrawer(true)}
-          className="fixed bottom-20 right-4 z-50 w-14 h-14 rounded-full bg-uwred text-white shadow-lg hover:brightness-110 active:scale-95 transition-all flex items-center justify-center chat-fab"
+          className="fixed bottom-20 right-4 z-50 w-14 h-14 rounded-full bg-gradient-to-br from-uwred to-rose-600 text-white shadow-lg shadow-uwred/30 hover:shadow-uwred/50 hover:scale-105 active:scale-95 transition-all flex items-center justify-center chat-fab glow-pulse"
         >
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
             <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
-          <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-uwgold text-[10px] font-bold text-uwdark flex items-center justify-center border-2 border-white">
+          <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-uwgold text-[10px] font-bold text-uwdark flex items-center justify-center border-2 border-uwdark shadow-sm">
             {matchCount}
           </span>
         </button>
@@ -302,8 +302,8 @@ export default function Home() {
         />
       )}
 
-      <footer className="text-center py-3 text-xs text-gray-400 border-t border-gray-100 mt-auto">
-        HelloNeighbour &middot; UW-Madison &middot; Notes expire in 48h &middot; Press <kbd className="px-1 py-0.5 rounded bg-gray-100 text-gray-500 text-[10px] font-mono">Esc</kbd> to close
+      <footer className="text-center py-3 text-xs text-white/20 border-t border-white/5 mt-auto glass">
+        HelloNeighbour &middot; UW-Madison &middot; Notes expire in 48h &middot; Press <kbd className="px-1 py-0.5 rounded bg-white/10 text-white/40 text-[10px] font-mono">Esc</kbd> to close
       </footer>
     </div>
   );

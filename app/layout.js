@@ -14,8 +14,15 @@ export default function RootLayout({ children }) {
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
       </head>
-      <body className="bg-cream text-uwdark min-h-screen">
-        <ToastProvider>{children}</ToastProvider>
+      <body className="min-h-screen text-white">
+        <div className="bg-mesh">
+          <div className="bg-orb bg-orb-1" />
+          <div className="bg-orb bg-orb-2" />
+        </div>
+        <div className="noise-overlay" />
+        <div className="relative z-10 min-h-screen">
+          <ToastProvider>{children}</ToastProvider>
+        </div>
       </body>
     </html>
   );

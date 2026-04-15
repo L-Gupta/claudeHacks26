@@ -12,10 +12,10 @@ function CompatRing({ score }) {
   return (
     <div className="relative w-[72px] h-[72px] mx-auto mb-3">
       <svg className="w-full h-full -rotate-90" viewBox="0 0 64 64">
-        <circle cx="32" cy="32" r={r} fill="none" stroke="#f0f0ee" strokeWidth="4" />
+        <circle cx="32" cy="32" r={r} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="4" />
         <circle cx="32" cy="32" r={r} fill="none" stroke={color} strokeWidth="4"
           strokeLinecap="round" strokeDasharray={circ} strokeDashoffset={offset}
-          className="compat-ring" style={{ '--target-offset': offset }} />
+          className="compat-ring" style={{ '--target-offset': offset, filter: `drop-shadow(0 0 6px ${color}50)` }} />
       </svg>
       <div className="absolute inset-0 flex items-center justify-center">
         <span className="text-lg font-black" style={{ color }}>{score}%</span>
@@ -30,12 +30,12 @@ function DimensionBars({ dimensions }) {
     <div className="space-y-1.5 mt-3">
       {Object.entries(dimensions).map(([label, val]) => (
         <div key={label} className="flex items-center gap-2">
-          <span className="text-[10px] text-gray-400 w-16 text-right font-medium">{label}</span>
-          <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-            <div className="h-full rounded-full transition-all duration-700 ease-out bg-uwred/70"
+          <span className="text-[10px] text-white/30 w-16 text-right font-medium">{label}</span>
+          <div className="flex-1 h-1.5 bg-white/5 rounded-full overflow-hidden">
+            <div className="h-full rounded-full transition-all duration-700 ease-out bg-gradient-to-r from-uwred/70 to-rose-500/70"
               style={{ width: `${val}%` }} />
           </div>
-          <span className="text-[10px] text-gray-500 font-semibold w-8">{val}%</span>
+          <span className="text-[10px] text-white/50 font-semibold w-8">{val}%</span>
         </div>
       ))}
     </div>
@@ -56,22 +56,22 @@ export default function VoiceModal({ pin, onClose, onResonate, resonated, analys
   );
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center p-4 bg-black/40" onClick={onClose}>
-      <div className="slide-up w-full max-w-md rounded-2xl p-6 relative bg-white shadow-2xl border border-gray-100"
+    <div className="fixed inset-0 z-50 flex items-end justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={onClose}>
+      <div className="slide-up w-full max-w-md rounded-2xl p-6 relative glass-card"
         onClick={e => e.stopPropagation()}>
 
-        <button onClick={onClose} className="absolute top-3 right-4 text-gray-400 hover:text-gray-700 text-xl transition-colors">&times;</button>
+        <button onClick={onClose} className="absolute top-3 right-4 text-white/30 hover:text-white/70 text-xl transition-colors">&times;</button>
 
         <div className="text-center mb-4">
           {!isCurrentUser && score !== null && <CompatRing score={score} />}
 
-          <div className="inline-block px-3 py-1 rounded-full text-xs font-semibold mb-2 bg-uwred/10 text-uwred border border-uwred/20">
+          <div className="inline-block px-3 py-1 rounded-full text-xs font-semibold mb-2 bg-uwred/15 text-uwred border border-uwred/20">
             Room {pin.room} &middot; {isCurrentUser ? pin.name : 'Anonymous'}
           </div>
           {pin.major && (
-            <div className="text-xs text-gray-400 mt-1">{pin.major} &middot; {pin.year}</div>
+            <div className="text-xs text-white/30 mt-1">{pin.major} &middot; {pin.year}</div>
           )}
-          <p className="text-sm text-gray-500 mt-2 leading-relaxed italic">&ldquo;{pin.summary}&rdquo;</p>
+          <p className="text-sm text-white/60 mt-2 leading-relaxed italic">&ldquo;{pin.summary}&rdquo;</p>
 
           {pin.hobbies?.length > 0 && (
             <div className="flex flex-wrap justify-center gap-1.5 mt-3">
@@ -80,8 +80,8 @@ export default function VoiceModal({ pin, onClose, onResonate, resonated, analys
                 return (
                   <span key={h} className={`px-2 py-0.5 rounded-full text-xs transition-all ${
                     isShared
-                      ? 'bg-uwred/10 text-uwred font-semibold border border-uwred/20'
-                      : 'bg-gray-100 text-gray-500'
+                      ? 'bg-uwred/15 text-uwred font-semibold border border-uwred/20 shadow-sm shadow-uwred/10'
+                      : 'bg-white/5 text-white/40'
                   }`}>
                     {isShared && '✦ '}{h}
                   </span>
@@ -103,14 +103,14 @@ export default function VoiceModal({ pin, onClose, onResonate, resonated, analys
         </div>
 
         <div className="rounded-xl p-3 mb-4" style={{ height: 56 }}>
-          <WaveformCanvas analyser={analyser} playing={playing} bg="#f5f5f2" />
+          <WaveformCanvas analyser={analyser} playing={playing} bg="rgba(255,255,255,0.03)" color="#c5050c" />
         </div>
 
         {!isCurrentUser && (
           <button onClick={() => onResonate(pin.id)} disabled={resonated}
-            className="w-full py-3 rounded-xl font-bold text-lg transition-all duration-300"
+            className={`w-full py-3 rounded-xl font-bold text-lg transition-all duration-300 ${resonated ? '' : 'btn-glow'}`}
             style={{
-              background: resonated ? '#22c55e' : '#c5050c',
+              background: resonated ? 'linear-gradient(135deg, #22c55e, #16a34a)' : undefined,
               color: 'white',
               opacity: resonated ? 0.8 : 1,
               transform: resonated ? 'scale(0.98)' : 'scale(1)',

@@ -80,55 +80,54 @@ export default function DormExplorer({ currentUser, onRoomClick }) {
     <div className="max-w-lg mx-auto px-4 py-3">
 
       {/* Dorm Selector */}
-      <div className="mb-3">
-        <label className="block text-[10px] font-bold text-gray-400 mb-1 uppercase tracking-widest">
+      <div className="mb-3 fade-in">
+        <label className="block text-[10px] font-bold text-white/30 mb-1 uppercase tracking-widest">
           Explore Dorm
         </label>
         <select
           value={dorm}
           onChange={e => changeDorm(e.target.value)}
-          className="w-full px-3 py-2.5 rounded-lg border border-gray-200 bg-white text-uwdark text-sm font-medium
-            focus:outline-none focus:ring-2 focus:ring-uwred/20 focus:border-uwred transition-all cursor-pointer">
+          className="w-full px-3 py-2.5 rounded-lg glass-input text-sm font-medium cursor-pointer">
           {DORM_LIST.map(d => <option key={d} value={d}>{d}</option>)}
         </select>
       </div>
 
       {/* Floor Navigator */}
-      <div className="flex items-center justify-between mb-3">
+      <div className="flex items-center justify-between mb-3 fade-in-d1">
         <button
           onClick={() => changeFloor(floor - 1)}
           disabled={floor <= MIN_FLOOR}
-          className="w-9 h-9 rounded-full flex items-center justify-center border border-gray-200 bg-white
-            text-uwdark font-bold text-base hover:bg-gray-50 disabled:opacity-20 disabled:cursor-not-allowed
-            transition-all active:scale-95 shadow-sm">
+          className="w-9 h-9 rounded-full flex items-center justify-center glass
+            text-white/70 font-bold text-base hover:bg-white/10 disabled:opacity-20 disabled:cursor-not-allowed
+            transition-all active:scale-95">
           ‹
         </button>
         <div className="text-center">
-          <span className="text-sm font-bold text-uwdark">Floor {floor}</span>
-          <span className="text-[11px] text-gray-400 ml-1">of {maxFloor}</span>
+          <span className="text-sm font-bold text-white">Floor {floor}</span>
+          <span className="text-[11px] text-white/30 ml-1">of {maxFloor}</span>
           {isUserFloor && (
             <span className="ml-2 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase
-              bg-uwred/10 text-uwred border border-uwred/20">
+              bg-uwred/20 text-uwred border border-uwred/30 shadow-sm shadow-uwred/10">
               Your floor
             </span>
           )}
-          <div className="text-[10px] text-gray-300 mt-0.5">
+          <div className="text-[10px] text-white/20 mt-0.5">
             {occupiedCount} voice {occupiedCount === 1 ? 'note' : 'notes'}
           </div>
         </div>
         <button
           onClick={() => changeFloor(floor + 1)}
           disabled={floor >= maxFloor}
-          className="w-9 h-9 rounded-full flex items-center justify-center border border-gray-200 bg-white
-            text-uwdark font-bold text-base hover:bg-gray-50 disabled:opacity-20 disabled:cursor-not-allowed
-            transition-all active:scale-95 shadow-sm">
+          className="w-9 h-9 rounded-full flex items-center justify-center glass
+            text-white/70 font-bold text-base hover:bg-white/10 disabled:opacity-20 disabled:cursor-not-allowed
+            transition-all active:scale-95">
           ›
         </button>
       </div>
 
       {/* Room Grid */}
-      <div className={`grid grid-cols-4 gap-2 mb-3 transition-opacity duration-120 ${transitioning ? 'opacity-0' : 'opacity-100'}`}>
-        {rooms.map(room => {
+      <div className={`grid grid-cols-4 gap-2 mb-3 transition-opacity duration-120 fade-in-d2 ${transitioning ? 'opacity-0' : 'opacity-100'}`}>
+        {rooms.map((room, idx) => {
           const occupant = floorUsers.find(u => u.room === room);
           const isYou = currentUser?.room === room && isUserFloor;
 
@@ -137,15 +136,16 @@ export default function DormExplorer({ currentUser, onRoomClick }) {
               key={room}
               onClick={() => handleRoomClick(room)}
               disabled={!occupant}
-              className={`relative rounded-lg py-2.5 px-1 text-center transition-all duration-200
+              style={{ animationDelay: `${idx * 30}ms` }}
+              className={`relative rounded-xl py-2.5 px-1 text-center transition-all duration-300 scale-in
                 ${occupant
                   ? isYou
-                    ? 'bg-uwgold/20 border-2 border-uwgold hover:shadow-md cursor-pointer'
-                    : 'bg-white border-2 border-uwred/20 hover:border-uwred/50 hover:shadow-md cursor-pointer active:scale-[0.97]'
-                  : 'bg-gray-50/80 border border-gray-100 cursor-default'
+                    ? 'glass border-2 border-uwgold/40 shadow-lg shadow-uwgold/10 hover:shadow-uwgold/20'
+                    : 'glass border border-uwred/20 hover:border-uwred/50 hover:shadow-lg hover:shadow-uwred/10 cursor-pointer active:scale-[0.97] hover:bg-white/10'
+                  : 'bg-white/[0.02] border border-white/5 cursor-default'
                 }`}
             >
-              <div className={`text-xs font-bold leading-none ${occupant ? 'text-uwdark' : 'text-gray-300'}`}>
+              <div className={`text-xs font-bold leading-none ${occupant ? 'text-white/90' : 'text-white/15'}`}>
                 {room}
               </div>
 
@@ -159,7 +159,7 @@ export default function DormExplorer({ currentUser, onRoomClick }) {
                   {isYou ? (
                     <span className="text-[8px] font-bold text-uwgold uppercase leading-none">You</span>
                   ) : (
-                    <div className="w-1.5 h-1.5 rounded-full bg-uwred mx-auto mt-0.5 animate-pulse" />
+                    <div className="w-1.5 h-1.5 rounded-full bg-uwred mx-auto mt-0.5 glow-pulse" />
                   )}
                 </div>
               )}
@@ -172,7 +172,7 @@ export default function DormExplorer({ currentUser, onRoomClick }) {
       {!loading && occupiedCount === 0 && (
         <div className="text-center py-5 fade-in">
           <p className="text-lg mb-1">🤫</p>
-          <p className="text-xs text-gray-400">No voice notes on this floor yet</p>
+          <p className="text-xs text-white/30">No voice notes on this floor yet</p>
         </div>
       )}
 

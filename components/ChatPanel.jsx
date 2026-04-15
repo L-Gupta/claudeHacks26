@@ -26,9 +26,9 @@ function DateSeparator({ date }) {
 
   return (
     <div className="flex items-center gap-3 my-4">
-      <div className="flex-1 h-px bg-gray-200" />
-      <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">{label}</span>
-      <div className="flex-1 h-px bg-gray-200" />
+      <div className="flex-1 h-px bg-white/5" />
+      <span className="text-[10px] font-semibold text-white/25 uppercase tracking-wider">{label}</span>
+      <div className="flex-1 h-px bg-white/5" />
     </div>
   );
 }
@@ -36,12 +36,12 @@ function DateSeparator({ date }) {
 function TypingIndicator({ name }) {
   return (
     <div className="flex items-center gap-2 ml-8 mt-1 mb-2">
-      <div className="flex gap-0.5 items-center px-3 py-2 rounded-2xl rounded-bl-md bg-white border border-gray-100">
-        <span className="typing-dot w-1.5 h-1.5 rounded-full bg-gray-400" style={{ animationDelay: '0ms' }} />
-        <span className="typing-dot w-1.5 h-1.5 rounded-full bg-gray-400" style={{ animationDelay: '150ms' }} />
-        <span className="typing-dot w-1.5 h-1.5 rounded-full bg-gray-400" style={{ animationDelay: '300ms' }} />
+      <div className="flex gap-0.5 items-center px-3 py-2 rounded-2xl rounded-bl-md glass border border-white/5">
+        <span className="typing-dot w-1.5 h-1.5 rounded-full bg-white/40" style={{ animationDelay: '0ms' }} />
+        <span className="typing-dot w-1.5 h-1.5 rounded-full bg-white/40" style={{ animationDelay: '150ms' }} />
+        <span className="typing-dot w-1.5 h-1.5 rounded-full bg-white/40" style={{ animationDelay: '300ms' }} />
       </div>
-      <span className="text-[10px] text-gray-400">{name} is typing</span>
+      <span className="text-[10px] text-white/25">{name} is typing</span>
     </div>
   );
 }
@@ -60,10 +60,10 @@ function ReactionBar({ reactions, currentUserId, onReact }) {
       {Object.values(grouped).map(g => (
         <button key={g.emoji} onClick={() => onReact(g.emoji)}
           className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] transition-all ${
-            g.byMe ? 'bg-uwred/10 border border-uwred/30' : 'bg-gray-100 border border-transparent hover:border-gray-200'
+            g.byMe ? 'bg-uwred/15 border border-uwred/30' : 'bg-white/5 border border-transparent hover:border-white/10'
           }`}>
           <span>{g.emoji}</span>
-          {g.count > 1 && <span className="text-gray-500 font-medium">{g.count}</span>}
+          {g.count > 1 && <span className="text-white/40 font-medium">{g.count}</span>}
         </button>
       ))}
     </div>
@@ -210,24 +210,24 @@ export default function ChatPanel({ currentUser, chatPartner, onClose }) {
   if (!chatPartner) return null;
 
   return (
-    <div className="fixed inset-0 z-[9999] flex flex-col bg-cream">
+    <div className="fixed inset-0 z-[9999] flex flex-col" style={{ background: 'rgba(10,10,18,0.95)' }}>
       {/* Header */}
-      <div className="flex items-center gap-3 px-4 py-3 bg-white border-b border-gray-100 shadow-sm">
+      <div className="flex items-center gap-3 px-4 py-3 glass-strong border-b border-white/5">
         <button onClick={onClose}
-          className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors text-gray-500">
+          className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/10 transition-colors text-white/50">
           <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
             <path d="M13 4L7 10L13 16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
         </button>
         <div className="relative">
-          <div className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold bg-uwred/10 text-uwred border-2 border-uwred/30">
+          <div className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold bg-uwred/15 text-uwred border-2 border-uwred/30 shadow-sm shadow-uwred/10">
             {chatPartner.name?.[0] || '?'}
           </div>
-          <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-green-400 border-2 border-white" />
+          <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-green-400 border-2 border-[#0a0a12] shadow-sm shadow-green-400/30" />
         </div>
         <div className="flex-1 min-w-0">
-          <div className="text-sm font-bold text-uwdark truncate">{chatPartner.name}</div>
-          <div className="text-xs text-gray-400">
+          <div className="text-sm font-bold text-white truncate">{chatPartner.name}</div>
+          <div className="text-xs text-white/30">
             {partnerTyping ? (
               <span className="text-uwred font-medium">typing...</span>
             ) : (
@@ -241,13 +241,13 @@ export default function ChatPanel({ currentUser, chatPartner, onClose }) {
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-0.5" onClick={() => setShowReactionPicker(null)}>
         {messages.length === 0 && !partnerTyping && (
           <div className="flex flex-col items-center justify-center h-full text-center">
-            <div className="w-16 h-16 rounded-full bg-uwred/10 flex items-center justify-center text-3xl mb-4">👋</div>
-            <p className="text-sm font-semibold text-uwdark">You matched with {chatPartner.name}!</p>
-            <p className="text-xs text-gray-400 mt-1 max-w-[240px] leading-relaxed">
+            <div className="w-16 h-16 rounded-full glass flex items-center justify-center text-3xl mb-4 float">👋</div>
+            <p className="text-sm font-semibold text-white">You matched with {chatPartner.name}!</p>
+            <p className="text-xs text-white/30 mt-1 max-w-[240px] leading-relaxed">
               Break the ice — say hello to your new neighbor
             </p>
             <button onClick={handleIcebreaker} disabled={loadingIcebreaker}
-              className="mt-4 px-4 py-2 rounded-full bg-uwred/10 text-uwred text-xs font-semibold hover:bg-uwred/20 transition-all flex items-center gap-1.5 disabled:opacity-50">
+              className="mt-4 px-4 py-2 rounded-full glass text-uwred text-xs font-semibold hover:bg-white/10 transition-all flex items-center gap-1.5 disabled:opacity-50 border border-uwred/15">
               {loadingIcebreaker ? (
                 <div className="w-3 h-3 border-2 border-uwred/30 border-t-uwred rounded-full animate-spin" />
               ) : (
@@ -273,7 +273,7 @@ export default function ChatPanel({ currentUser, chatPartner, onClose }) {
                 {!isMine && (
                   <div className="w-6 mr-1.5 flex-shrink-0 flex items-end">
                     {showAvatar && (
-                      <div className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold bg-uwred/10 text-uwred">
+                      <div className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold bg-uwred/15 text-uwred">
                         {chatPartner.name?.[0]}
                       </div>
                     )}
@@ -283,8 +283,8 @@ export default function ChatPanel({ currentUser, chatPartner, onClose }) {
                   <div
                     className={`chat-bubble px-3.5 py-2 text-sm leading-relaxed relative ${
                       isMine
-                        ? 'bg-uwred text-white rounded-2xl rounded-br-md'
-                        : 'bg-white text-uwdark rounded-2xl rounded-bl-md border border-gray-100'
+                        ? 'bg-gradient-to-br from-uwred to-rose-600 text-white rounded-2xl rounded-br-md shadow-lg shadow-uwred/15'
+                        : 'glass text-white/90 rounded-2xl rounded-bl-md border border-white/5'
                     }`}
                     onDoubleClick={(e) => {
                       e.stopPropagation();
@@ -296,10 +296,10 @@ export default function ChatPanel({ currentUser, chatPartner, onClose }) {
 
                   {/* Reaction picker */}
                   {showReactionPicker === msg.id && (
-                    <div className={`absolute ${isMine ? 'right-0' : 'left-0'} -top-10 z-10 flex gap-0.5 px-2 py-1.5 rounded-full bg-white shadow-lg border border-gray-100 reaction-picker`}>
+                    <div className={`absolute ${isMine ? 'right-0' : 'left-0'} -top-10 z-10 flex gap-0.5 px-2 py-1.5 rounded-full glass-card reaction-picker`}>
                       {REACTION_EMOJIS.map(emoji => (
                         <button key={emoji} onClick={(e) => { e.stopPropagation(); handleReact(msg.id, emoji); }}
-                          className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-gray-100 transition-all hover:scale-125 text-sm">
+                          className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-white/10 transition-all hover:scale-125 text-sm">
                           {emoji}
                         </button>
                       ))}
@@ -310,10 +310,10 @@ export default function ChatPanel({ currentUser, chatPartner, onClose }) {
                     onReact={(emoji) => handleReact(msg.id, emoji)} />
 
                   {isLast && (
-                    <div className={`text-[10px] text-gray-400 mt-0.5 px-1 flex items-center gap-1 ${isMine ? 'justify-end' : ''}`}>
+                    <div className={`text-[10px] text-white/20 mt-0.5 px-1 flex items-center gap-1 ${isMine ? 'justify-end' : ''}`}>
                       {formatTime(msg.createdAt)}
                       {isMine && (
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" className="text-gray-400">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" className="text-white/30">
                           <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                         </svg>
                       )}
@@ -330,10 +330,10 @@ export default function ChatPanel({ currentUser, chatPartner, onClose }) {
       </div>
 
       {/* Input */}
-      <div className="px-3 py-3 bg-white border-t border-gray-100">
+      <div className="px-3 py-3 glass-strong border-t border-white/5">
         <form onSubmit={handleSend} className="flex items-center gap-2 max-w-2xl mx-auto">
           <button type="button" onClick={handleIcebreaker} disabled={loadingIcebreaker}
-            className="w-10 h-10 flex items-center justify-center rounded-full text-uwred hover:bg-uwred/10 transition-all disabled:opacity-30 flex-shrink-0"
+            className="w-10 h-10 flex items-center justify-center rounded-full text-uwred hover:bg-white/5 transition-all disabled:opacity-30 flex-shrink-0"
             title="AI Icebreaker">
             {loadingIcebreaker ? (
               <div className="w-4 h-4 border-2 border-uwred/30 border-t-uwred rounded-full animate-spin" />
@@ -349,10 +349,10 @@ export default function ChatPanel({ currentUser, chatPartner, onClose }) {
             value={input}
             onChange={handleInputChange}
             placeholder="Type a message..."
-            className="flex-1 px-4 py-2.5 text-sm rounded-full bg-cream border border-gray-200 focus:border-uwred/40 focus:outline-none focus:ring-2 focus:ring-uwred/10 transition-all placeholder:text-gray-400"
+            className="flex-1 px-4 py-2.5 text-sm rounded-full glass-input"
           />
           <button type="submit" disabled={!input.trim() || sending}
-            className="w-10 h-10 flex items-center justify-center rounded-full bg-uwred text-white disabled:opacity-30 hover:brightness-110 active:scale-95 transition-all flex-shrink-0">
+            className="w-10 h-10 flex items-center justify-center rounded-full bg-gradient-to-br from-uwred to-rose-600 text-white disabled:opacity-30 hover:shadow-lg hover:shadow-uwred/20 active:scale-95 transition-all flex-shrink-0">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
               <path d="M22 2L11 13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
               <path d="M22 2L15 22L11 13L2 9L22 2Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>

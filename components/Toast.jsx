@@ -60,13 +60,13 @@ export function ToastProvider({ children }) {
         {toasts.map(t => (
           <div
             key={t.id}
-            className={`pointer-events-auto flex items-center gap-2.5 px-4 py-3 rounded-xl bg-white shadow-lg border border-gray-100 cursor-pointer transition-all duration-300 ${
+            className={`pointer-events-auto flex items-center gap-2.5 px-4 py-3 rounded-xl glass-card cursor-pointer transition-all duration-300 ${
               t.exiting ? 'toast-exit' : 'toast-enter'
             }`}
             onClick={() => dismiss(t.id)}
           >
             {ICONS[t.type] || ICONS.info}
-            <span className="text-sm text-uwdark font-medium leading-snug">{t.message}</span>
+            <span className="text-sm text-white/90 font-medium leading-snug">{t.message}</span>
           </div>
         ))}
       </div>

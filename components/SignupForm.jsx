@@ -31,6 +31,8 @@ export default function SignupForm({ onComplete }) {
   const [recordTime, setRecordTime] = useState(0);
   const [recorded, setRecorded] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [liveTranscript, setLiveTranscript] = useState('');
+  const [transcriptDone, setTranscriptDone] = useState(false);
 
   const mediaRecRef = useRef(null);
   const streamRef = useRef(null);
@@ -42,6 +44,8 @@ export default function SignupForm({ onComplete }) {
   const rafRef = useRef(null);
   const blobRef = useRef(null);
   const recordingRef = useRef(false);
+  const recognitionRef = useRef(null);
+  const transcriptRef = useRef('');
 
   const maxFloor = DORM_FLOORS[form.dorm] || 8;
   const validRooms = getValidRooms(parseInt(form.floor));
@@ -69,6 +73,9 @@ export default function SignupForm({ onComplete }) {
 
   function resetRecording() {
     blobRef.current = null;
+    transcriptRef.current = '';
+    setLiveTranscript('');
+    setTranscriptDone(false);
     setRecorded(false);
     setRecordTime(0);
   }
@@ -104,6 +111,44 @@ export default function SignupForm({ onComplete }) {
       recordingRef.current = true;
       setIsRecording(true);
       setRecordTime(0);
+      transcriptRef.current = '';
+      setLiveTranscript('');
+      setTranscriptDone(false);
+
+      // Start Web Speech API transcription alongside audio recording
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (SpeechRecognition) {
+        const recognition = new SpeechRecognition();
+        recognition.continuous = true;
+        recognition.interimResults = true;
+        recognition.lang = 'en-US';
+
+        let finalText = '';
+        recognition.onresult = (event) => {
+          let interim = '';
+          for (let i = event.resultIndex; i < event.results.length; i++) {
+            const t = event.results[i][0].transcript;
+            if (event.results[i].isFinal) {
+              finalText += t + ' ';
+            } else {
+              interim += t;
+            }
+          }
+          transcriptRef.current = (finalText + interim).trim();
+          setLiveTranscript(transcriptRef.current);
+        };
+
+        recognition.onerror = (e) => {
+          if (e.error !== 'aborted') console.warn('Speech recognition error:', e.error);
+        };
+
+        recognition.onend = () => {
+          if (transcriptRef.current) setTranscriptDone(true);
+        };
+
+        recognition.start();
+        recognitionRef.current = recognition;
+      }
 
       timerRef.current = setInterval(() => {
         setRecordTime(prev => {
@@ -128,11 +173,17 @@ export default function SignupForm({ onComplete }) {
     clearInterval(timerRef.current);
     cancelAnimationFrame(rafRef.current);
 
+    if (recognitionRef.current) {
+      try { recognitionRef.current.stop(); } catch {}
+      recognitionRef.current = null;
+    }
+
     const mr = mediaRecRef.current;
     if (mr && mr.state !== 'inactive') {
       mr.onstop = () => {
         blobRef.current = new Blob(chunksRef.current, { type: 'audio/webm' });
         setRecorded(true);
+        if (transcriptRef.current) setTranscriptDone(true);
       };
       mr.stop();
     }
@@ -177,13 +228,17 @@ export default function SignupForm({ onComplete }) {
     setSubmitting(true);
 
     try {
+      const realTranscript = transcriptRef.current?.trim();
+      const fallbackTranscript = form.hobbies.length
+        ? "Looking to meet my neighbors! I love " + form.hobbies.join(' and ') + ". " + form.major + " major here."
+        : "Looking to meet my neighbors!";
+      const transcript = realTranscript || fallbackTranscript;
+
       const res = await fetch('/api/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          transcript: recorded
-            ? "Hey, I'm looking for cool people on my floor to hang out with. I love " + form.hobbies.join(' and ') + "."
-            : "Looking to meet my neighbors!",
+          transcript,
           major: form.major,
           year: form.year,
           hobbies: form.hobbies,
@@ -200,6 +255,7 @@ export default function SignupForm({ onComplete }) {
         major: form.major,
         year: form.year,
         hobbies: form.hobbies,
+        transcript,
         summary: analysis.summary,
         features: analysis,
         blobUrl: blobRef.current ? URL.createObjectURL(blobRef.current) : null,
@@ -225,150 +281,167 @@ export default function SignupForm({ onComplete }) {
   return (
     <div className="flex items-start justify-center px-4 pt-6 pb-4">
       <div className="w-full max-w-md fade-in">
-        <div className="text-center mb-5">
-          <h2 className="text-xl font-black text-uwdark">Welcome to HelloNeighbour</h2>
-          <p className="text-xs text-gray-400 mt-0.5">Tell us a bit about yourself</p>
-          <div className="flex justify-center gap-2 mt-3">
-            <div className={`w-14 h-1 rounded-full transition-colors ${step >= 1 ? 'bg-uwred' : 'bg-gray-200'}`} />
-            <div className={`w-14 h-1 rounded-full transition-colors ${step >= 2 ? 'bg-uwred' : 'bg-gray-200'}`} />
+        <div className="glass-card rounded-2xl p-6 shimmer-border">
+          <div className="text-center mb-6">
+            <h2 className="text-xl font-black bg-gradient-to-r from-white to-white/70 bg-clip-text text-transparent">Welcome to HelloNeighbour</h2>
+            <p className="text-xs text-white/40 mt-0.5">Tell us a bit about yourself</p>
+            <div className="flex justify-center gap-2 mt-3">
+              <div className={`w-14 h-1 rounded-full transition-all duration-500 ${step >= 1 ? 'bg-gradient-to-r from-uwred to-rose-500 shadow-sm shadow-uwred/30' : 'bg-white/10'}`} />
+              <div className={`w-14 h-1 rounded-full transition-all duration-500 ${step >= 2 ? 'bg-gradient-to-r from-uwred to-rose-500 shadow-sm shadow-uwred/30' : 'bg-white/10'}`} />
+            </div>
           </div>
-        </div>
 
-        {step === 1 && (
-          <div className="space-y-3 fade-in">
-            <div>
-              <label className="block text-[11px] font-semibold text-gray-500 mb-1">First Name</label>
-              <input value={form.name} onChange={e => upd('name', e.target.value)}
-                placeholder="What should people call you?"
-                className="w-full px-3 py-2.5 rounded-lg border border-gray-200 bg-white text-uwdark text-sm focus:outline-none focus:ring-2 focus:ring-uwred/30 focus:border-uwred transition-all" />
-            </div>
-
-            <div className="grid grid-cols-2 gap-2.5">
+          {step === 1 && (
+            <div className="space-y-3 fade-in">
               <div>
-                <label className="block text-[11px] font-semibold text-gray-500 mb-1">Dorm</label>
-                <select value={form.dorm} onChange={e => upd('dorm', e.target.value)}
-                  className="w-full px-3 py-2.5 rounded-lg border border-gray-200 bg-white text-uwdark text-sm focus:outline-none focus:ring-2 focus:ring-uwred/30 focus:border-uwred transition-all">
-                  {DORMS.map(d => <option key={d} value={d}>{d}</option>)}
-                </select>
+                <label className="block text-[11px] font-semibold text-white/50 mb-1">First Name</label>
+                <input value={form.name} onChange={e => upd('name', e.target.value)}
+                  placeholder="What should people call you?"
+                  className="w-full px-3 py-2.5 rounded-lg glass-input text-sm" />
               </div>
-              <div>
-                <label className="block text-[11px] font-semibold text-gray-500 mb-1">Floor</label>
-                <select value={form.floor} onChange={e => upd('floor', e.target.value)}
-                  className="w-full px-3 py-2.5 rounded-lg border border-gray-200 bg-white text-uwdark text-sm focus:outline-none focus:ring-2 focus:ring-uwred/30 focus:border-uwred transition-all">
-                  {Array.from({ length: maxFloor - MIN_FLOOR + 1 }, (_, i) => i + MIN_FLOOR).map(f =>
-                    <option key={f} value={f}>Floor {f}</option>
-                  )}
-                </select>
-              </div>
-            </div>
 
-            <div>
-              <label className="block text-[11px] font-semibold text-gray-500 mb-1">Room Number</label>
-              <select value={form.room} onChange={e => upd('room', e.target.value)}
-                className="w-full px-3 py-2.5 rounded-lg border border-gray-200 bg-white text-uwdark text-sm focus:outline-none focus:ring-2 focus:ring-uwred/30 focus:border-uwred transition-all">
-                {validRooms.map(r => <option key={r} value={r}>{r}</option>)}
-              </select>
-            </div>
-
-            <div className="grid grid-cols-2 gap-2.5">
-              <div>
-                <label className="block text-[11px] font-semibold text-gray-500 mb-1">Major</label>
-                <input value={form.major} onChange={e => upd('major', e.target.value)}
-                  placeholder="e.g. Computer Science"
-                  className="w-full px-3 py-2.5 rounded-lg border border-gray-200 bg-white text-uwdark text-sm focus:outline-none focus:ring-2 focus:ring-uwred/30 focus:border-uwred transition-all" />
-              </div>
-              <div>
-                <label className="block text-[11px] font-semibold text-gray-500 mb-1">Year</label>
-                <select value={form.year} onChange={e => upd('year', e.target.value)}
-                  className="w-full px-3 py-2.5 rounded-lg border border-gray-200 bg-white text-uwdark text-sm focus:outline-none focus:ring-2 focus:ring-uwred/30 focus:border-uwred transition-all">
-                  {YEARS.map(y => <option key={y} value={y}>{y}</option>)}
-                </select>
-              </div>
-            </div>
-
-            <button onClick={() => setStep(2)} disabled={!canProceed}
-              className="w-full py-2.5 rounded-lg font-bold text-white bg-uwred hover:brightness-110 disabled:opacity-40 transition-all mt-1">
-              Next →
-            </button>
-          </div>
-        )}
-
-        {step === 2 && (
-          <div className="space-y-4 fade-in">
-            <div>
-              <label className="block text-[11px] font-semibold text-gray-500 mb-1.5">Pick your hobbies</label>
-              <div className="flex flex-wrap gap-1.5">
-                {HOBBIES.map(h => (
-                  <button key={h.id} onClick={() => toggleHobby(h.id)}
-                    className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all
-                      ${form.hobbies.includes(h.id)
-                        ? 'bg-uwred text-white border-uwred'
-                        : 'bg-white text-gray-500 border-gray-200 hover:border-uwred/40'}`}>
-                    {h.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-[11px] font-semibold text-gray-500 mb-1">Record a voice note <span className="text-gray-300">(optional)</span></label>
-              <p className="text-[11px] text-gray-400 mb-2">15 seconds about yourself — tap to start, tap again to stop</p>
-
-              <div className="flex items-center gap-4">
-                <div className="relative shrink-0">
-                  {isRecording && (
-                    <>
-                      <div className="ripple-ring" />
-                      <div className="ripple-ring" style={{ animationDelay: '0.35s' }} />
-                    </>
-                  )}
-                  <button
-                    onClick={toggleRecording}
-                    className={`relative w-14 h-14 rounded-full flex items-center justify-center text-white font-bold text-xs select-none transition-all
-                      ${recorded ? '' : isRecording ? 'record-active' : 'breathe'}`}
-                    style={{
-                      background: recorded ? '#22c55e'
-                        : isRecording ? 'radial-gradient(circle, #ff2222, #c5050c)'
-                        : 'radial-gradient(circle, #c5050c, #8a0308)',
-                      border: '3px solid rgba(255,255,255,0.2)',
-                    }}>
-                    {recorded ? '✓' : isRecording ? `${15 - recordTime}s` : (
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="white">
-                        <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
-                        <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
-                      </svg>
-                    )}
-                  </button>
+              <div className="grid grid-cols-2 gap-2.5">
+                <div>
+                  <label className="block text-[11px] font-semibold text-white/50 mb-1">Dorm</label>
+                  <select value={form.dorm} onChange={e => upd('dorm', e.target.value)}
+                    className="w-full px-3 py-2.5 rounded-lg glass-input text-sm">
+                    {DORMS.map(d => <option key={d} value={d}>{d}</option>)}
+                  </select>
                 </div>
+                <div>
+                  <label className="block text-[11px] font-semibold text-white/50 mb-1">Floor</label>
+                  <select value={form.floor} onChange={e => upd('floor', e.target.value)}
+                    className="w-full px-3 py-2.5 rounded-lg glass-input text-sm">
+                    {Array.from({ length: maxFloor - MIN_FLOOR + 1 }, (_, i) => i + MIN_FLOOR).map(f =>
+                      <option key={f} value={f}>Floor {f}</option>
+                    )}
+                  </select>
+                </div>
+              </div>
 
-                {isRecording ? (
-                  <canvas ref={canvasRef} width="260" height="40"
-                    className="flex-1 rounded-lg" style={{ background:'#f0f0ee', height: 40 }} />
-                ) : recorded ? (
-                  <div className="flex-1">
-                    <p className="text-xs text-gray-500">✅ Voice note recorded!</p>
-                    <button onClick={resetRecording} className="text-[11px] text-uwred font-semibold mt-0.5 hover:underline">
-                      Re-record
+              <div>
+                <label className="block text-[11px] font-semibold text-white/50 mb-1">Room Number</label>
+                <select value={form.room} onChange={e => upd('room', e.target.value)}
+                  className="w-full px-3 py-2.5 rounded-lg glass-input text-sm">
+                  {validRooms.map(r => <option key={r} value={r}>{r}</option>)}
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2.5">
+                <div>
+                  <label className="block text-[11px] font-semibold text-white/50 mb-1">Major</label>
+                  <input value={form.major} onChange={e => upd('major', e.target.value)}
+                    placeholder="e.g. Computer Science"
+                    className="w-full px-3 py-2.5 rounded-lg glass-input text-sm" />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-semibold text-white/50 mb-1">Year</label>
+                  <select value={form.year} onChange={e => upd('year', e.target.value)}
+                    className="w-full px-3 py-2.5 rounded-lg glass-input text-sm">
+                    {YEARS.map(y => <option key={y} value={y}>{y}</option>)}
+                  </select>
+                </div>
+              </div>
+
+              <button onClick={() => setStep(2)} disabled={!canProceed}
+                className="w-full py-2.5 rounded-lg font-bold text-white btn-glow mt-1 text-sm">
+                Next →
+              </button>
+            </div>
+          )}
+
+          {step === 2 && (
+            <div className="space-y-4 fade-in">
+              <div>
+                <label className="block text-[11px] font-semibold text-white/50 mb-1.5">Pick your hobbies</label>
+                <div className="flex flex-wrap gap-1.5">
+                  {HOBBIES.map(h => (
+                    <button key={h.id} onClick={() => toggleHobby(h.id)}
+                      className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all duration-300
+                        ${form.hobbies.includes(h.id)
+                          ? 'bg-uwred/80 text-white border-uwred/60 shadow-sm shadow-uwred/20'
+                          : 'bg-white/5 text-white/50 border-white/10 hover:border-uwred/40 hover:text-white/70'}`}>
+                      {h.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-semibold text-white/50 mb-1">Record a voice note <span className="text-white/20">(optional)</span></label>
+                <p className="text-[11px] text-white/30 mb-2">15 seconds about yourself — tap to start, tap again to stop</p>
+
+                <div className="flex items-center gap-4">
+                  <div className="relative shrink-0">
+                    {isRecording && (
+                      <>
+                        <div className="ripple-ring" />
+                        <div className="ripple-ring" style={{ animationDelay: '0.35s' }} />
+                      </>
+                    )}
+                    <button
+                      onClick={toggleRecording}
+                      className={`relative w-14 h-14 rounded-full flex items-center justify-center text-white font-bold text-xs select-none transition-all
+                        ${recorded ? '' : isRecording ? 'record-active' : 'breathe'}`}
+                      style={{
+                        background: recorded ? 'linear-gradient(135deg, #22c55e, #16a34a)'
+                          : isRecording ? 'radial-gradient(circle, #ff2222, #c5050c)'
+                          : 'radial-gradient(circle, #c5050c, #8a0308)',
+                        border: '3px solid rgba(255,255,255,0.15)',
+                        boxShadow: isRecording ? '0 0 30px rgba(197,5,12,0.4)' : recorded ? '0 0 20px rgba(34,197,94,0.3)' : '0 0 20px rgba(197,5,12,0.2)',
+                      }}>
+                      {recorded ? '✓' : isRecording ? `${15 - recordTime}s` : (
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="white">
+                          <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
+                          <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
+                        </svg>
+                      )}
                     </button>
                   </div>
-                ) : (
-                  <p className="text-xs text-gray-400">Tap the mic to start recording</p>
+
+                  {isRecording ? (
+                    <div className="flex-1 space-y-1">
+                      <canvas ref={canvasRef} width="260" height="40"
+                        className="w-full rounded-lg" style={{ background:'rgba(255,255,255,0.05)', height: 40 }} />
+                      {liveTranscript && (
+                        <p className="text-[11px] text-uwred/80 italic leading-tight animate-pulse">
+                          &ldquo;{liveTranscript}&rdquo;
+                        </p>
+                      )}
+                    </div>
+                  ) : recorded ? (
+                    <div className="flex-1">
+                      <p className="text-xs text-green-400/80">✅ Voice note recorded!</p>
+                      <button onClick={resetRecording} className="text-[11px] text-uwred font-semibold mt-0.5 hover:underline">
+                        Re-record
+                      </button>
+                    </div>
+                  ) : (
+                    <p className="text-xs text-white/30">Tap the mic to start recording</p>
+                  )}
+                </div>
+
+                {transcriptDone && liveTranscript && (
+                  <div className="mt-2 p-2.5 rounded-lg glass border border-white/10">
+                    <p className="text-[10px] font-semibold text-white/40 uppercase tracking-wide mb-1">Transcribed from your voice</p>
+                    <p className="text-xs text-white/60 leading-relaxed">&ldquo;{liveTranscript}&rdquo;</p>
+                  </div>
                 )}
               </div>
-            </div>
 
-            <div className="flex gap-2.5 mt-2">
-              <button onClick={() => setStep(1)}
-                className="flex-1 py-2.5 rounded-lg font-bold text-gray-500 bg-gray-100 hover:bg-gray-200 transition-all text-sm">
-                ← Back
-              </button>
-              <button onClick={handleSubmit} disabled={!canProceed || submitting}
-                className="flex-1 py-2.5 rounded-lg font-bold text-white bg-uwred hover:brightness-110 disabled:opacity-40 transition-all text-sm">
-                {submitting ? 'Setting up...' : 'Join Your Floor →'}
-              </button>
+              <div className="flex gap-2.5 mt-2">
+                <button onClick={() => setStep(1)}
+                  className="flex-1 py-2.5 rounded-lg font-bold text-white/60 bg-white/5 border border-white/10 hover:bg-white/10 transition-all text-sm">
+                  ← Back
+                </button>
+                <button onClick={handleSubmit} disabled={!canProceed || submitting}
+                  className="flex-1 py-2.5 rounded-lg font-bold text-white btn-glow text-sm">
+                  {submitting ? 'Setting up...' : 'Join Your Floor →'}
+                </button>
+              </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );
