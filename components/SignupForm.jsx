@@ -67,11 +67,17 @@ export default function SignupForm({ onComplete }) {
     }));
   }
 
+  function resetRecording() {
+    blobRef.current = null;
+    setRecorded(false);
+    setRecordTime(0);
+  }
+
   async function toggleRecording() {
-    if (recorded) return;
     if (recordingRef.current) {
       stopRecording();
     } else {
+      if (recorded) resetRecording();
       await startRecording();
     }
   }
@@ -318,7 +324,6 @@ export default function SignupForm({ onComplete }) {
                   )}
                   <button
                     onClick={toggleRecording}
-                    disabled={recorded}
                     className={`relative w-14 h-14 rounded-full flex items-center justify-center text-white font-bold text-xs select-none transition-all
                       ${recorded ? '' : isRecording ? 'record-active' : 'breathe'}`}
                     style={{
@@ -339,10 +344,15 @@ export default function SignupForm({ onComplete }) {
                 {isRecording ? (
                   <canvas ref={canvasRef} width="260" height="40"
                     className="flex-1 rounded-lg" style={{ background:'#f0f0ee', height: 40 }} />
+                ) : recorded ? (
+                  <div className="flex-1">
+                    <p className="text-xs text-gray-500">✅ Voice note recorded!</p>
+                    <button onClick={resetRecording} className="text-[11px] text-uwred font-semibold mt-0.5 hover:underline">
+                      Re-record
+                    </button>
+                  </div>
                 ) : (
-                  <p className="text-xs text-gray-400">
-                    {recorded ? '✅ Voice note recorded!' : 'Tap the mic to start recording'}
-                  </p>
+                  <p className="text-xs text-gray-400">Tap the mic to start recording</p>
                 )}
               </div>
             </div>
