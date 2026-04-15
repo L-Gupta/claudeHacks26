@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { addUser, getDormUsers, getFloorUsers } from '@/lib/store';
+import { addUser, getDormUsers, getFloorUsers, getUser } from '@/lib/store';
 import { suggestConnections } from '@/lib/claude';
 import { knnRank } from '@/lib/knn';
 
@@ -9,16 +9,28 @@ export async function GET(req) {
   const floor = searchParams.get('floor');
   const userId = searchParams.get('userId');
 
-  let users = dorm ? getDormUsers(dorm) : [];
-  if (floor) users = users.filter(u => u.floor === parseInt(floor));
+  if (!dorm) {
+    return NextResponse.json({ error: 'dorm parameter required' }, { status: 400 });
+  }
+
+  let users = floor
+    ? getFloorUsers(dorm, parseInt(floor))
+    : getDormUsers(dorm);
 
   let suggestions = [];
+
   if (userId) {
-    const currentUser = users.find(u => u.id === userId);
-    const others = users.filter(u => u.id !== userId);
-    if (currentUser && others.length > 0) {
-      const ranked = knnRank(currentUser.features, others);
-      suggestions = await suggestConnections(currentUser, ranked);
+    const currentUser = getUser(userId);
+    if (currentUser) {
+      const others = users.filter(u => u.id !== userId);
+      if (others.length > 0) {
+        const ranked = knnRank(currentUser.features || {}, others);
+        try {
+          suggestions = await suggestConnections(currentUser, ranked);
+        } catch (err) {
+          console.error('Suggestion generation error:', err);
+        }
+      }
     }
   }
 
@@ -28,6 +40,9 @@ export async function GET(req) {
 export async function POST(req) {
   try {
     const user = await req.json();
+    if (!user.id || !user.dorm || !user.room) {
+      return NextResponse.json({ error: 'Missing required fields: id, dorm, room' }, { status: 400 });
+    }
     addUser(user);
     return NextResponse.json({ ok: true, user });
   } catch (err) {
